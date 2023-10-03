@@ -1,0 +1,7 @@
+transformers
+huggingface_hub["cli"]
+pandas
+numpy
+scikit-learn
+torch
+dataset
