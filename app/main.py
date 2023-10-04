@@ -125,5 +125,4 @@ def root():
 @app.get("/data", response_model=List[schema.EmployeeHealthAnalysis])
 async def process_employee_data():
     # background_tasks.add_task(process_data)
-    
     return process_data()
