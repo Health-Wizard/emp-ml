@@ -21,7 +21,7 @@ def expand_contractions(text):
 
 def remove_punctuation_numbers_special_chars(text)->str:
     # Replace URLs with an empty string
-    text_no_links = re.sub(r'https?://\S+|www\.\S+', '', text)
+    text_no_links = re.sub(r'https?://\S+|www\.\S+', '', str(text))
 
     # Replace mentions with an empty string
     text_no_mentions = re.sub(r'@', '', text_no_links)

@@ -4,15 +4,16 @@ from datetime import datetime
 
 
 class EmployeeDetails(BaseModel):
-    _id: str
-    email: str
-    age: str
-    sex: str
+    _id: str = None
+    email: str = None
+    age: str = None
+    sex: str = None
 
 
 class AnalyticsData(BaseModel):
     title: str
-    data: list[float]
+    data: list
+    range: list[int] | None = None
     graph_type: str
 
 
@@ -30,4 +31,4 @@ class EmployeeMessage(BaseModel):
 class EmployeeHealthAnalysis(BaseModel):
     user_id: str
     period: TimeFrame
-    health_data: List[AnalyticsData]
+    health_metrics: List[AnalyticsData]

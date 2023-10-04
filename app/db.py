@@ -10,40 +10,32 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-class EmployeeDB:
-    def __init__(self):
-        self.uri = DB_URL
-        self.db_name = DB_NAME
-        self.client = self.connect()
-        self.db = self.connect_db()
-
-    def connect(self):
-        try:
-            client = MongoClient(self.uri, server_api=ServerApi('1'))
-            logging.info("success fully connected to mongodb...")
-        except PyMongoError as e:
-            print(e)
-        return client
-
-    def connect_db(self):
-        db = self.client[self.db_name]
-        return db
-
-    def connect_collection(self, collection_name, index=None):
-        collection = self.db[collection_name]
-        if not index:
-            collection.create_index((index, ASCENDING), name=index)
-        return collection
-
-    def close_connection(self):
-        try:
-            self.client.close()
-            logging.info("Successfully closed client")
-        except PyMongoError as e:
-            logging.error(repr(e))
+def connect():
+    try:
+        client = MongoClient(DB_URL, server_api=ServerApi('1'))
+        logging.info("success fully connected to mongodb...")
+    except PyMongoError as e:
+        print(e)
+    return client
 
 
-empDB = EmployeeDB()
-EmployeeDetails = empDB.db['employee_details']
-EmployeeMesaage = empDB.db['employee_messages']
-HealthData = empDB.db['employee_health_analytics']
+def connect_db(client):
+    db = client[DB_NAME]
+    return db
+
+
+def close_connection(client):
+    try:
+        client.close()
+        logging.info("Successfully closed client")
+    except PyMongoError as e:
+        logging.error(repr(e))
+
+
+client = connect()
+db = connect_db(client=client)
+EmployeeDetails = db['employee_details']
+EmployeeDetails.create_index('email', unique=True)
+EmployeeMesaage = db['employee_messages']
+EmployeeMesaage.create_index('user_id')
+HealthData = db['employee_health_analytics']
