@@ -27,8 +27,11 @@ class EmployeeMessage(BaseModel):
     user_id: str
     date_time: str
 
-
 class EmployeeHealthAnalysis(BaseModel):
     user_id: str
     period: TimeFrame
     health_metrics: List[AnalyticsData]
+
+class ResponseDta(BaseModel):
+    status:str
+    data : List[EmployeeHealthAnalysis]  = None

@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,BackgroundTasks
 from fastapi.responses import JSONResponse
 from app.util import remove_punctuation_numbers_special_chars
-from app.constant import EMOTION_MODEL, DEPRESSION_MODEL, LABEL_SCORES, STRESS_LABELS
+import app.constant as constant
 from app.model import Model
 from app.db import EmployeeMesaage, EmployeeDetails, HealthData
 import app.schema as schema
@@ -15,44 +15,74 @@ from collections import Counter
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
 
-emotion_classifier = Model(EMOTION_MODEL).get_pipeline()
-depression_classifier = Model(DEPRESSION_MODEL).get_pipeline()
+classifier = Model(constant.CLASSIFICATION_MODEL).get_pipeline()
 
 data = pd.DataFrame()
 
 
-def get_prediction(pipeline, text: str):
-    return pipeline(text)[0]['label']
+def get_prediction(text: str, label: list[str]):
+    return classifier(text, label, multi_label=False)
 
 
-def calculate_rate(ecurr: int, etotal: int, dcurr: int) -> float:
-    return round((ecurr + dcurr)/(etotal)*10, 1)
+def get_predicted_label(text: str, labels: list[str]):
+    emotions = get_prediction(text=text, label=labels)
+    em_labels = emotions['labels']
+    scores = emotions['scores']
+    max_score = max(scores)
+    ind = scores.index(max_score)
+    label = em_labels[ind]
+    return label
 
 
-def predict_class(row):
-    global emotion_classifier, depression_classifier
+def predict_emotions(row):
     filtered_text = remove_punctuation_numbers_special_chars(row['text'])
     logging.info("Text filtered..")
-    emotion = get_prediction(emotion_classifier, filtered_text)
-    depressed = get_prediction(depression_classifier, filtered_text)
-    row['depressed'] = True if depressed == 'LABEL_1' else False
-    row['emotion'] = emotion
-    logging.info("Text predicted..")
+    emotion_label = get_predicted_label(
+        text=filtered_text, labels=constant.EMOTION_LABEL)
+    label = ""
+    if emotion_label == 'sadness':
+        label = get_predicted_label(filtered_text, constant.SAD_LABEL)
+        logging.info("Sadness label predicted..")
+    elif emotion_label == 'happiness':
+        label = get_predicted_label(filtered_text, constant.HAPPY_LABEL)
+        logging.info("Happiness label predicted..")
+    elif emotion_label == 'disgust':
+        label = get_predicted_label(filtered_text, constant.DISGRUST_LABEL)
+        logging.info("Digust label predicted..")
+    elif emotion_label == 'anger':
+        label = get_predicted_label(filtered_text, constant.ANGER_LABEL)
+        logging.info("Anger label predicted..")
+    elif emotion_label == 'fear':
+        label = get_predicted_label(filtered_text, constant.FEAR_LABEL)
+        logging.info("Fear label predicted..")
+    elif emotion_label == 'surprise':
+        label = get_predicted_label(filtered_text, constant.SURPRISE_LABEL)
+        logging.info("Surprise label predicted..")
+    else:
+        label = get_predicted_label(filtered_text, constant.NEUTRAL_LABEL)
+        logging.info("Neutral label predicted..")
+    row['emotion'] = label
     return row
 
 
-def calculate_health_index(emotions: list[str], depression: list[bool]):
-    total_score = sum(LABEL_SCORES[emotion] for emotion in emotions)
-    possitivity_rate = (total_score/(len(emotions)*10))
-    stress_from_emotions = sum(
-        STRESS_LABELS[emotion] for emotion in emotions) / (len(emotions) * 10)
-    stress_from_depression = sum(5 if value else 0 for value in depression) / (
-        len(depression) * 5)   # Higher stress if depressed
-    # Higher stress for lower positivity rate
-    stress_from_positivity = (1 - possitivity_rate)
-    # Combine the stress factors with weights (you can adjust the weights based on importance)
-    stress_level = 0.6 * stress_from_emotions + \
-        0.3 * stress_from_depression + 0.1 * stress_from_positivity
+def calculate_health_index(emotions: list[str]):
+    positive_score = 0
+    stress_score = 0
+    depress_score = 0
+    total_score = len(emotion)
+    depressions = constant.ANGER_LABEL + constant.DISGRUST_LABEL + \
+        constant.FEAR_LABEL + constant.SAD_LABEL
+    for emotion in emotions:
+        positive_score = positive_score + constant.LABEL_SCORES[emotion]
+        stress_score = stress_score + (10 - constant.LABEL_SCORES[emotion])
+        if emotion in depressions:
+            depress_score = depress_score + 5
+
+    possitivity_rate = (positive_score/(total_score*10))
+    stress_from_emotions = stress_score / (total_score * 10)
+
+    stress_from_depression = depress_score / (total_score * 5)
+    stress_level = 0.6 * stress_from_emotions + 0.3 * stress_from_depression
     health_data = [schema.AnalyticsData(
         title="Happiness Level of Employee",
         data=[possitivity_rate],
@@ -80,7 +110,15 @@ def get_data(connection, query={}, filter={}, limit=0, skip=0):
     return data
 
 
-def process_data():
+
+
+async def process_data():
+
+    # fetch channel link from the db
+
+    # fetch employee details from db
+
+    # fetch channel related messages from db
     emp_data = get_data(connection=EmployeeDetails,
                         filter={'email': 1, '_id': 0})
     logging.info("Emails fetched.")
@@ -89,7 +127,7 @@ def process_data():
         hour=10, minute=0, second=0)
     start_date = end_date - timedelta(weeks=1)
     health_data = []
-    for email in user_emails[:2]:
+    for email in user_emails[:1]:
         query = {"user_id": email, "date_time": {
             "$gte": start_date, "$lte": end_date}}
         emp_msgs = get_data(connection=EmployeeMesaage,
@@ -97,7 +135,7 @@ def process_data():
         logging.info("Messages fetched!!")
 
         df_texts = pd.DataFrame(emp_msgs)
-        df_texts = df_texts.apply(predict_class, axis=1)
+        df_texts = df_texts.apply(predict_emotions, axis=1)
         logging.info("Emotions and depression predicted!!!")
 
         health_metrics = calculate_health_index(
@@ -122,7 +160,9 @@ def root():
     return {"message": "Server running"}
 
 
-@app.get("/data", response_model=List[schema.EmployeeHealthAnalysis])
-async def process_employee_data():
-    # background_tasks.add_task(process_data)
-    return process_data()
+@app.get("/analytics")
+async def process_employee_data(background_tasks: BackgroundTasks):
+    response = {"status": "running"}
+    background_tasks.add_task(process_data)
+    # response["data"] = heathData
+    return response

@@ -1,5 +1,4 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
-from app.constant import EMOTION_MODEL
 
 class Model:
     def __init__(self, model_name):
@@ -13,7 +12,7 @@ class Model:
         return model
 
     def load_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name,use_fast=False)
         return tokenizer
 
     def get_pipeline(self):
@@ -21,7 +20,7 @@ class Model:
         if self.model and self.tokenizer:
             self.model.eval()
             # Replace with appropriate Hugging Face pipeline
-            classifier = pipeline('text-classification',
+            classifier = pipeline('zero-shot-classification',
                                   model=self.model, tokenizer=self.tokenizer)
             return classifier
         else:

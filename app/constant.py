@@ -1,5 +1,4 @@
-EMOTION_MODEL="app/model/distilbert-base-uncased-go-emotions"
-DEPRESSION_MODEL="app/model/distilbert-base-uncased-depress-model"
+CLASSIFICATION_MODEL = "app/model/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 PASSWORD = "pioneersp"
 DB_URL = f"mongodb+srv://pioneersp:{PASSWORD}@cluster0.rrnp1r4.mongodb.net/?retryWrites=true&w=majority"
 DB_NAME = "org_details"
@@ -72,80 +71,78 @@ CONTRACTION_MAPPING = {
     "you've": "you have"
 }
 
+EMOTION_LABEL = ["sadness", "happiness", "disgust",
+                 "anger", "fear", "surprise", "neutral"]
 HAPPY_LABEL = [
-    "admiration",
-    "amusement",
     "excitement",
     "joy",
     "love",
     "optimism",
-    "pride",
-    "relief",
-    "caring",
-    "approval",
-    "gratitude",
-    "surprise"
+    "admiration",
+    "gratitude"
+]
+SAD_LABEL = [
+    "grief",
+    "disappointment",
+    "remorse",
+    "sorrow"
 ]
 
+DISGRUST_LABEL = [
+    "repugnance",
+    "contempt",
+    "disapproval"
+]
+
+ANGER_LABEL = ["frustration", "annoyance", "irritation", "aggressive"]
+
+FEAR_LABEL = ["panic", "anxiety", "worry", "nervousness"]
+
+NEUTRAL_LABEL = ["relief",
+                 "caring",
+                 "approval",
+                 "desire",
+                 "pride"]
+
+SURPRISE_LABEL = ["amazement", "shock", "confusion"]
+
 LABEL_SCORES = {
-    "admiration": 8,
+    "amazement": 7,
+    "admiration": 7,
     "amusement": 8,
     "anger": 2,
-    "annoyance": 3,
+    "annoyance": 2,
+    "anxiety" : 2,
     "approval": 7,
-    "caring": 9,
+    "caring": 7,
     "confusion": 4,
+    "worry" : 3,
     "curiosity": 6,
-    "desire": 7,
+    "repugnance": 1,
+    "contempt": 2,
+    "desire": 6,
     "disappointment": 3,
-    "disapproval": 2,
+    "disapproval": 4,
     "disgust": 1,
     "embarrassment": 2,
     "excitement": 8,
-    "fear": 1,
-    "gratitude": 9,
+    "fear": 0,
+    "gratitude": 8,
     "grief": 2,
     "joy": 10,
+    "shock":2,
     "love": 10,
     "nervousness": 2,
     "optimism": 8,
     "pride": 8,
     "realization": 5,
-    "relief": 7,
-    "remorse": 2,
-    "sadness": 1,
+    "relief": 6,
+    "remorse": 0,
+    "sorrow": 0,
     "surprise": 6,
-    "neutral": 5 
+    "frustration": 1,
+    "irritation": 3,
+    "aggressive": 0,
+    "panic" : 1,
+    "neutral": 5
 }
-
-STRESS_LABELS = {
-    "admiration": 1,
-    "amusement": 2,
-    "anger": 9,
-    "annoyance": 7,
-    "approval": 1,
-    "caring": 2,
-    "confusion": 6,
-    "curiosity": 4,
-    "desire": 5,
-    "disappointment": 7,
-    "disapproval": 8,
-    "disgust": 9,
-    "embarrassment": 8,
-    "excitement": 2,
-    "fear": 10,
-    "gratitude": 1,
-    "grief": 9,
-    "joy": 1,
-    "love": 1,
-    "nervousness": 8,
-    "optimism": 2,
-    "pride": 1,
-    "realization": 5,
-    "relief": 3,
-    "remorse": 7,
-    "sadness": 9,
-    "surprise": 5,
-    "neutral": 6
-}
-
