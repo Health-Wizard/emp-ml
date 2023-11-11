@@ -15,12 +15,12 @@ class Model:
         tokenizer = AutoTokenizer.from_pretrained(self.model_name,use_fast=False)
         return tokenizer
 
-    def get_pipeline(self):
+    def get_pipeline(self, text:str):
         # Use the Hugging Face pipeline with the initialized model and tokenizer
         if self.model and self.tokenizer:
             self.model.eval()
             # Replace with appropriate Hugging Face pipeline
-            classifier = pipeline('zero-shot-classification',
+            classifier = pipeline(text,
                                   model=self.model, tokenizer=self.tokenizer)
             return classifier
         else:
