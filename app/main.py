@@ -5,23 +5,11 @@ from app.schema import EmployeeHealthAnalysis, ResponseData, TimeFrame
 import pandas as pd
 import logging
 import datetime
-import asyncio
-from prisma import Prisma
 
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
 health_data = []
 status = None
-
-
-async def save_emotions():
-    db = Prisma()
-    await db.connect()
-
-    users = await db.register.find_many()
-    emp = await db.employee.find_many()
-    print(emp)
-    print(users)
 
 def process_data():
     global health_data, status
@@ -29,7 +17,6 @@ def process_data():
     messages = []
     startDate = datetime.datetime.utcnow()
     endDate = startDate-datetime.timedelta(7)
-    # await save_emotions()
 
 
     # fetch channel link from the db

@@ -1,7 +1,4 @@
-transformers
-huggingface_hub["cli"]
+fastapi
 pandas
-numpy
-scikit-learn
-torch
-dataset
+torch # Make sure to use the version compatible with your Hugging Face model
+transformers
