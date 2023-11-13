@@ -1,10 +1,12 @@
 from fastapi import FastAPI, BackgroundTasks
 from app.text_util import fetch_channels, fetch_messages
 from app.metrics_utils import calculate_health_index
-from app.schema import EmployeeHealthAnalysis, ResponseData
+from app.schema import EmployeeHealthAnalysis, ResponseData, TimeFrame
 import pandas as pd
 import logging
-import time
+import datetime
+import asyncio
+from prisma import Prisma
 
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
@@ -12,11 +14,23 @@ health_data = []
 status = None
 
 
+async def save_emotions():
+    db = Prisma()
+    await db.connect()
+
+    users = await db.register.find_many()
+    emp = await db.employee.find_many()
+    print(emp)
+    print(users)
+
 def process_data():
     global health_data, status
-
     # store message data
     messages = []
+    startDate = datetime.datetime.utcnow()
+    endDate = startDate-datetime.timedelta(7)
+    # await save_emotions()
+
 
     # fetch channel link from the db
     channel_details = fetch_channels()
@@ -38,13 +52,14 @@ def process_data():
         break
     msg_data = pd.DataFrame.from_dict(messages)
     msg_groupby_user = msg_data.groupby('user_id')
+
     for user_id, msges_data in msg_groupby_user:
         health_metrics = calculate_health_index(msges_data)
         health_data.append(EmployeeHealthAnalysis(
             user_id=user_id,
+            period= TimeFrame(startDate=startDate.isoformat(), endDate=endDate.isoformat()),
             health_metrics=health_metrics
         ))
-
     status = "completed"
 
 
@@ -67,9 +82,8 @@ async def trigger_employee_data(background_tasks: BackgroundTasks):
         data=[]
     )
 
-
 @app.get("/metric", response_model=ResponseData, status_code=200)
-async def get_employee_data():
+def get_employee_data():
     global status
     response = None
     if status == "running":
@@ -80,7 +94,7 @@ async def get_employee_data():
     
     if status == "Error":
         return
-    print(health_data) 
+    # print(health_data) 
     response = ResponseData(
         status=status,
         data=health_data

@@ -22,22 +22,33 @@ def calculate_health_score(emotions: list[str]):
     return possitivity_rate,stress_level
 
 
+def distribution_data_over_week(data, groupby=None):
+   distribution_data = data.groupby(groupby).size().unstack().fillna(0)
+   return distribution_data.values.tolist(),distribution_data.index
 
 
 def calculate_health_index(data):
-    emotions = data['label']
+    emotions=data['label']
+    data = data.sort_values(by='day_of_week')
     possitivity_rate,stress_level = calculate_health_score(emotions)
-    print(data['sentiment'].value_counts())
-    emotion_distribution = data.groupby(['day_of_week', 'sentiment']).size().unstack().fillna(0)
-    positive_counts = []
-    negative_counts= []
-    neutral_counts  =[]
-    if 'positive' in emotion_distribution.columns:
-        positive_counts = emotion_distribution['positive'].values.tolist()       
-    if 'negative' in emotion_distribution.columns:
-        negative_counts = emotion_distribution['negative'].values.tolist()
-    if 'neutral' in emotion_distribution.columns:
-        neutral_counts = emotion_distribution['neutral'].values.tolist()
+    emotions_group = data['label'].value_counts()
+    sentiment_group = data['sentiment'].value_counts().reindex(constant.SENTIMENT_LABELS, fill_value=0)
+    # Count of sentiment per day
+    sentiments_per_day = data.groupby('day_of_week')['sentiment'].value_counts().unstack(fill_value=0).reindex(constant.WEEKDAY_LABELS, fill_value=0).sort_index()
+    print(sentiments_per_day)
+    # Count of emotions per day
+    neg_data = data[data['sentiment'] == 'negative']
+    negative_emotions_per_day = neg_data.groupby('day_of_week')['label'].value_counts().unstack(fill_value=0).reindex(constant.WEEKDAY_LABELS, fill_value=0).sort_index()
+    print(negative_emotions_per_day)
+    # positive_counts = []
+    # negative_counts= []
+    # neutral_counts  =[]
+    # if 'positive' in sent_distribution.columns:
+    #     positive_counts = sent_distribution['positive'].values.tolist()       
+    # if 'negative' in sent_distribution.columns:
+    #     negative_counts = sent_distribution['negative'].values.tolist()
+    # if 'neutral' in sent_distribution.columns:
+    #     neutral_counts = sent_distribution['neutral'].values.tolist()
     health_data = [schema.AnalyticsData(
         title="Happiness Level of Employee",
         data=[possitivity_rate],
@@ -52,22 +63,30 @@ def calculate_health_index(data):
     ),
         schema.AnalyticsData(
         title="Mood Graph of Employee",
-        data=[dict(Counter(emotions))],
-        range=[0, len(emotions)],
+        data=[emotions_group.values.tolist()],
+        label = [emotions_group.index.tolist()],
+        range=[0, 1],
         graph_type="pie graph"
     ),
         schema.AnalyticsData(
-        title="Overall Sentiment of Employee",
-        data=[sum(positive_counts), sum(negative_counts),sum(neutral_counts)],
-        label = ["Postive", "Negative", "Neutral"],
-        range=[0, len(emotions)],
+        title="Overall Sentiment Percentage",
+        data=sentiment_group.values.tolist(),
+        label = sentiment_group.index.tolist(),
+        range=[0, 1],
         graph_type="pie graph"
     ),
      schema.AnalyticsData(
-        title="Sentiment Distribution of Employee over a week",
-        data=[positive_counts,negative_counts,neutral_counts],
-        label = ["Postive", "Negative", "Neutral"],
-        xlabel = [emotion_distribution.index],
+        title="Sentiment Distribution over a week",
+        data=sentiments_per_day.values.tolist(),
+        label = constant.SENTIMENT_LABELS,
+        xrange = constant.WEEKDAY,
+        graph_type="bar graph"
+    ),
+     schema.AnalyticsData(
+        title="Negative Emotions Distribution over a week",
+        data=negative_emotions_per_day.values.tolist(),
+        label = negative_emotions_per_day.columns.tolist(),
+        xrange = constant.WEEKDAY,
         graph_type="bar graph"
     )
     ]

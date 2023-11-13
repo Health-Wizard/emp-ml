@@ -13,7 +13,9 @@ class EmployeeDetails(BaseModel):
 class AnalyticsData(BaseModel):
     title: str
     data: list
-    range: list[int] | None = None
+    range: list | None = None
+    label: list = None
+    xrange: list = None
     graph_type: str
 
 
@@ -29,7 +31,7 @@ class EmployeeMessage(BaseModel):
 
 class EmployeeHealthAnalysis(BaseModel):
     user_id: str
-    # period: TimeFrame
+    period: TimeFrame
     health_metrics: List[AnalyticsData]
 
 class ResponseData(BaseModel):

@@ -1,12 +1,13 @@
 CLASSIFICATION_MODEL = "app/model/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
-EMOTION_MODEL = "app/model/SamLowe/roberta-base-go_emotions"
+EMOTION_MODEL = "SamLowe/roberta-base-go_emotions"
 PASSWORD = "pioneersp"
 CHANNEL_TYPE = "group_channels"
 APP_ID = "8E9DD5B3-51F9-40BF-A851-F639C6C4A888"
 TOKEN = "0c3cd6f3ad79ee8c40fe51cad7ede9ae1271b784"
-DB_URL = f"mongodb+srv://pioneersp:{PASSWORD}@cluster0.rrnp1r4.mongodb.net/?retryWrites=true&w=majority"
-DB_NAME = "org_details"
 
+SENTIMENT_LABELS = ["Positive", "Negative", "Neutral"]
+WEEKDAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+WEEKDAY_LABELS = [x for x in range(7)]
 
 EMOTION_LABEL = ["sadness", "happiness", "disgust",
                  "anger", "fear", "surprise", "neutral"]

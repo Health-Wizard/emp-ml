@@ -64,10 +64,10 @@ def fetch_channels():
 
 def fetch_messages(url=None, name=None, message_id=None, prev_id=None):
     msges_data = []
-    run = True
-    while run:
+    msg_len = 200
+    while msg_len>=200:
         msg_channl = requests.get(
-            f"https://api-{APP_ID}.sendbird.com/v3/{CHANNEL_TYPE}/{url}/messages?message_id={message_id}&prev_limit=50&next_limit=0", headers=headers)
+            f"https://api-{APP_ID}.sendbird.com/v3/{CHANNEL_TYPE}/{url}/messages?message_id={message_id}&prev_limit=200&next_limit=0", headers=headers)
         msg_json = msg_channl.json()
         logging.info("Messages fetched " + name)
         if msg_channl.status_code == 200:
@@ -76,10 +76,8 @@ def fetch_messages(url=None, name=None, message_id=None, prev_id=None):
                 return msges_data
             id = 0
             for msg in messages:
-                if id == msg['message_id']:
-                    break
                 if prev_id == msg:
-                    run = False
+                    msg_len=0
                     break
                 message = remove_punctuation_numbers_special_chars(
                     msg['message'])
@@ -88,13 +86,12 @@ def fetch_messages(url=None, name=None, message_id=None, prev_id=None):
                 score = LABEL_SCORES[label]
                 sentiment = None
                 if score > 6:
-                    sentiment = 'positive'
+                    sentiment = 'Positive'
                 elif score < 4:
-                    sentiment = 'negative'
+                    sentiment = 'Negative'
                 else:
-                    sentiment = 'neutral'
+                    sentiment = 'Neutral'
                 timestamp = change_mili_to_datetime(msg['created_at'])
-                weekday = timestamp.strftime('%A')
                 msges_data.append(
                     {
                         'message': message,
@@ -102,13 +99,13 @@ def fetch_messages(url=None, name=None, message_id=None, prev_id=None):
                         'user_id': msg['user']['user_id'],
                         'label': label,
                         'sentiment': sentiment,
-                        'day_of_week': weekday
+                        'day_of_week': timestamp.weekday()
                     }
                 )
                 if id == 0:
                     id = msg['message_id']
+                msg_len = len(messages)
             message_id = id
         else:
-            print(msg_channl.content)
-        break
+            logging.error("Error while fetching channels" + msg_json)
     return msges_data
