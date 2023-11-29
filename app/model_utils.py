@@ -43,4 +43,6 @@ def get_label_from_score(scores:list[str], labels:list[str]):
 
 def predict_emotions(msg: str):
     emotion = emotion_classifier(msg)
-    return emotion[0]['label']
+    label = emotion[0]['label']
+    logging.info(f"Predicted label - {label}")
+    return label

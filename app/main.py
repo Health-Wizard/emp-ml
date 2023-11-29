@@ -1,53 +1,58 @@
 from fastapi import FastAPI, BackgroundTasks
-from app.text_util import fetch_channels, fetch_messages
+from app.slack_utlis import fetch_conversations
 from app.metrics_utils import calculate_health_index
 from app.schema import EmployeeHealthAnalysis, ResponseData, TimeFrame
-import pandas as pd
+from app.constant import SENTIMENT_LABELS
 import logging
 import datetime
+from prisma import Prisma
 
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
+
 health_data = []
+
 status = None
+emp_details = None
+channel_details = None
+
+# async def fetch_from_db():
+#     global emp_details
+#     db = Prisma()
+#     await db.connect()
+#     channel_details = await db.channels.find_many()
+#     emp_list = await db.employee.find_many()
+#     print(channel_details)
+#     employee_details = pd.DataFrame([vars(emp) for emp in emp_list])
+#     employee_details.drop(columns=['id', 'username', 'name', 'companyEmail'],inplace=True)
+#     employee_details['empId'] = employee_details['empId'].astype(int)
+#     employee_details.set_index('empId', inplace=True)
+#     employee_details['happiness_index'] = 0.0
+#     employee_details['stree_label'] = 0.0
+#     employee_details['sentiment'] = SENTIMENT_LABELS[2]
+#     emp_details = employee_details
+#     await db.disconnect()
 
 def process_data():
     global health_data, status
     # store message data
-    messages = []
-    startDate = datetime.datetime.utcnow()
-    endDate = startDate-datetime.timedelta(7)
+    logging.info("Processing started")
+    messages = fetch_conversations()
+    
+    return calculate_health_index(messages)
 
+    # messages_details = pd.DataFrame.from_dict(messages)
+    # msg_groupby_user = messages_details.groupby('user_id')
 
-    # fetch channel link from the db
-    channel_details = fetch_channels()
-
-    if not channel_details:
-        logging.info("No channels found!!!!")
-        status = "Error"
-        return
-
-    logging.info(f"Channels fetched :{str(len(channel_details))}")
-
-    # fetch channel related messages and employee details from sendbird
-    for channel in channel_details:
-        msges_data = fetch_messages(channel['url'],channel['name'], channel['last_message_id'])
-        logging.info(f"Messages fetch from channel: {channel['name']}")
-        if len(msges_data) == 0:
-            continue
-        messages.extend(msges_data)
-        break
-    msg_data = pd.DataFrame.from_dict(messages)
-    msg_groupby_user = msg_data.groupby('user_id')
-
-    for user_id, msges_data in msg_groupby_user:
-        health_metrics = calculate_health_index(msges_data)
-        health_data.append(EmployeeHealthAnalysis(
-            user_id=user_id,
-            period= TimeFrame(startDate=startDate.isoformat(), endDate=endDate.isoformat()),
-            health_metrics=health_metrics
-        ))
-    status = "completed"
+    # for user_id, msges_data in msg_groupby_user:
+    #     health_metrics = calculate_health_index(int(user_id), msges_data, emp_details)
+    #     health_data.append(EmployeeHealthAnalysis(
+    #         user_id=user_id,
+    #         period= TimeFrame(startDate=startDate.isoformat(), endDate=endDate.isoformat()),
+    #         health_metrics=health_metrics
+    #     ))
+    
+    # status = "completed"
 
 
 app = FastAPI()
@@ -63,12 +68,13 @@ async def trigger_employee_data(background_tasks: BackgroundTasks):
     global status
     if status == None:
         status = "running"
-        background_tasks.add_task(process_data)
+    # await fetch_from_db()
+    health_data = process_data()
+    # background_tasks.add_task(process_data)
     return ResponseData(
         status=status,
-        data=[]
+        data=health_data
     )
-
 @app.get("/metric", response_model=ResponseData, status_code=200)
 def get_employee_data():
     global status
@@ -81,7 +87,6 @@ def get_employee_data():
     
     if status == "Error":
         return
-    # print(health_data) 
     response = ResponseData(
         status=status,
         data=health_data

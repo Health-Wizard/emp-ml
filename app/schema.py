@@ -9,20 +9,26 @@ class EmployeeDetails(BaseModel):
     age: str = None
     sex: str = None
 
-
 class AnalyticsData(BaseModel):
-    title: str
-    data: list
+    title: str = None
+    data: list = None
     range: list | None = None
     label: list = None
     xrange: list = None
-    graph_type: str
+    graph_type: str = None
 
 
 class TimeFrame(BaseModel):
     startDate: datetime
     endDate: datetime
 
+class Channels(BaseModel):
+    url : str
+    name: str
+    create_timestamp : str
+    member_count: int
+    type: str
+    last_message_id : int
 
 class EmployeeMessage(BaseModel):
     text: str
@@ -32,8 +38,9 @@ class EmployeeMessage(BaseModel):
 class EmployeeHealthAnalysis(BaseModel):
     user_id: str
     period: TimeFrame
-    health_metrics: List[AnalyticsData]
+    health_metrics: List[AnalyticsData] = None
 
 class ResponseData(BaseModel):
     status:str
     data : List[EmployeeHealthAnalysis]  = None
+    channel : List[Channels] = None
