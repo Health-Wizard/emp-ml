@@ -4,3 +4,4 @@ torch # Make sure to use the version compatible with your Hugging Face model
 transformers
 uvicorn
 pydantic
+slack_sdk
