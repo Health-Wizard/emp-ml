@@ -3,17 +3,23 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from app.constant import LABEL_SCORES, SENTIMENT_LABELS
 from app.model_utils import predict_emotions
-from app.constant import TOKEN
 import datetime
 import logging
-client = WebClient(token=TOKEN)
+import os
+from dotenv import load_dotenv
 
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
 
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+client = WebClient(token=TOKEN)
+
+
 def fetch_channel_details():
     channel_details = client.conversations_list()
     return channel_details['channels']
+
 
 def fetch_user_details(user_id):
     user_info = client.users_info(user=user_id)['user']
@@ -25,12 +31,13 @@ def change_timestamp_to_utc(ts):
     utc_time = datetime.datetime.utcfromtimestamp(float(ts))
     return utc_time
 
+
 def filter_messages(messages_details):
     messages = []
     pattern = r'.*has joined the channel.*'
     for msg in messages_details:
         text = msg['text']
-        if not re.search(pattern, text) and len(text)!=0:
+        if not re.search(pattern, text) and len(text) != 0:
             label = predict_emotions(text)
             score = LABEL_SCORES[label]
             sentiment = None
@@ -42,9 +49,9 @@ def filter_messages(messages_details):
                 sentiment = SENTIMENT_LABELS[2]
             timestamp = change_timestamp_to_utc(msg['ts'])
             message = {
-                'text' : remove_punctuation_numbers_special_chars(text),
-                'timestamp' : timestamp,
-                'user_id' : fetch_user_details(msg['user']),
+                'text': remove_punctuation_numbers_special_chars(text),
+                'timestamp': timestamp,
+                'user_id': fetch_user_details(msg['user']),
                 'day_of_week': timestamp.weekday(),
                 'label': label,
                 'sentiment': sentiment,
@@ -53,14 +60,16 @@ def filter_messages(messages_details):
         logging.info("message filtered")
     return messages
 
+
 def fetch_conversations():
     cursor = None
-    has_more=True
+    has_more = True
     channels = fetch_channel_details()
     messages = []
     for channel in channels:
-        while(has_more):
-            msg_details = client.conversations_history(channel=channel['id'],limit=200,cursor=cursor)
+        while (has_more):
+            msg_details = client.conversations_history(
+                channel=channel['id'], limit=200, cursor=cursor)
             logging.info(f"messages fetched from {channel['name']}")
             has_more = msg_details['has_more']
             cursor = msg_details['response_metadata']['next_cursor'] if msg_details['response_metadata'] else None
@@ -73,7 +82,8 @@ def remove_punctuation_numbers_special_chars(text) -> str:
     # Replace URLs with an empty string
     text_no_links = re.sub(r'https?://\S+|www\.\S+', '', str(text))
 
-    remove_code_block = re.sub(r'```.*?```', '', text_no_links, flags=re.DOTALL)
+    remove_code_block = re.sub(
+        r'```.*?```', '', text_no_links, flags=re.DOTALL)
 
     # Replace mentions with an empty string
     text_no_mentions = re.sub(r'[@#]', '', remove_code_block)
