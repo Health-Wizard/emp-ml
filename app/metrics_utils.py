@@ -1,7 +1,11 @@
-import app.constant as constant
+from app.constant import HAPPINESS_LABEL, LABEL_SCORES, SENTIMENT_LABELS, WEEKDAY_LABELS, WEEKDAY
 import app.schema as schema
 import pandas as pd
 import datetime
+from app.models import HealthData
+
+startDate = datetime.datetime.utcnow()
+endDate = startDate-datetime.timedelta(7)
 
 
 def calculate_health_score(emotions: list[str]):
@@ -10,7 +14,7 @@ def calculate_health_score(emotions: list[str]):
     depress_score = 0
     total_score = len(emotions)
     for emotion in emotions:
-        score = constant.LABEL_SCORES[emotion]
+        score = LABEL_SCORES[emotion]
         positivity_score = positivity_score + score
         stress_score = stress_score + (10 - score)
         if score <= 4:
@@ -23,80 +27,139 @@ def calculate_health_score(emotions: list[str]):
     return possitivity_rate, stress_level
 
 
-def distribution_data_over_week(data, groupby=None):
-    distribution_data = data.groupby(groupby).size().unstack().fillna(0)
-    return distribution_data.values.tolist(), distribution_data.index
+def calculate_admin_graph(emp_data):
+    avg_happiness_index = emp_data['happiness_index'].mean()
+    avg_stress_level = emp_data['stree_label'].mean()
+    happiness_level = emp_data['happiness_level'].value_counts()
+    only_emp_data = emp_data[emp_data['role'] == 'employee']
+    stress_by_dept = only_emp_data.groupby('department')['stree_label'].mean()
+    only_admin = (emp_data[emp_data['role'] == 'employee']['empId']).tolist()
+    admin_health_data = []
+
+    for admin in only_admin:
+        healthData = {
+            'data':   [schema.AnalyticsData(
+                title="Happiness Index",
+                data=[avg_happiness_index],
+                range=[0, 1],
+                graph_type="progress bar"
+            ),
+                schema.AnalyticsData(
+                title="Stress Level",
+                data=[avg_stress_level],
+                range=[0, 1],
+                graph_type="progress bar"
+            ),
+                schema.AnalyticsData(
+                title="Happiness Level",
+                data=[happiness_level.values.tolist()],
+                label=[happiness_level.index.tolist()],
+                range=[0, 1],
+                graph_type="pie graph"
+            ),
+                schema.AnalyticsData(
+                title="Stress by Department",
+                data=[stress_by_dept.values.tolist()],
+                label=[stress_by_dept.index.tolist()],
+                range=[0, 1],
+                graph_type="bar graph"
+            ),
+            ]
+        }
+        admin_health_data.append(
+            HealthData(
+                empId=admin,
+                startDate=startDate.isoformat(),
+                endDate=endDate.isoformat(),
+                health_metrics=healthData
+            )
+        )
+    return admin_health_data
 
 
-def calculate_health_index(messages):
+def calculate_health_index(messages, emp_details):
     health_data = []
-    startDate = datetime.datetime.utcnow()
-    endDate = startDate-datetime.timedelta(7)
+
+    emp_data = pd.DataFrame(emp_details, columns=[
+                            'empId', 'companyEmail', 'role', 'department'])
+    emp_data['happiness_index'] = [0.0]*len(emp_data)
+    emp_data['stree_label'] = [0.0]*len(emp_data)
+    print(emp_data.head())
+
     messages_details = pd.DataFrame.from_dict(messages)
-    msg_groupby_user = messages_details.groupby('user_id')
+
+    emp_msg_data = pd.merge(emp_data, messages_details,
+                            on='companyEmail', how='inner')
+
+    emp_msg_data.to_csv('a.csv', index=False)
+
+    msg_groupby_user = emp_msg_data.groupby('companyEmail')
     for user_id, msges_data in msg_groupby_user:
         emotions = msges_data['label']
         msges_data.sort_values(by='day_of_week', inplace=True)
         possitivity_rate, stress_level = calculate_health_score(emotions)
         emotions_group = msges_data['label'].value_counts()
         sentiment_group = msges_data['sentiment'].value_counts().reindex(
-            constant.SENTIMENT_LABELS, fill_value=0)
-        # Count of sentiment per day
+            SENTIMENT_LABELS, fill_value=0)
         sentiments_per_day = msges_data.groupby('day_of_week')['sentiment'].value_counts(
-        ).unstack(fill_value=0).reindex(constant.WEEKDAY_LABELS, fill_value=0).sort_index()
+        ).unstack(fill_value=0).reindex(WEEKDAY_LABELS, fill_value=0).sort_index()
+
+        print(sentiments_per_day)
         # Count of emotions per day
         neg_data = msges_data[msges_data['sentiment'] == 'negative']
         negative_emotions_per_day = neg_data.groupby('day_of_week')['label'].value_counts(
-        ).unstack(fill_value=0).reindex(constant.WEEKDAY_LABELS, fill_value=0).sort_index()
-        messages_details.at[user_id, 'happiness_index'] = possitivity_rate
-        messages_details.at[user_id, 'stree_label'] = stress_level
-        messages_details.at[user_id, 'sentiment'] = sentiment_group.idxmax()
+        ).unstack(fill_value=0).reindex(WEEKDAY_LABELS, fill_value=0).sort_index()
+        emp_data.loc[emp_data['companyEmail'] == str(
+            user_id), 'happiness_index'] = possitivity_rate
+        emp_data.loc[emp_data['companyEmail'] == str(
+            user_id), 'stree_label'] = stress_level
 
+        healthdata = {
+            'data':  [schema.AnalyticsData(
+                title="Happiness Level of Employee",
+                data=[possitivity_rate],
+                range=[0, 1],
+                graph_type="progress bar"
+            ),
+                schema.AnalyticsData(
+                title="Stress Level of Employee",
+                data=[stress_level],
+                range=[0, 1],
+                graph_type="progress bar"
+            ),
+                schema.AnalyticsData(
+                title="Mood Graph of Employee",
+                data=[emotions_group.values.tolist()],
+                label=[emotions_group.index.tolist()],
+                range=[0, 1],
+                graph_type="pie graph"
+            ),
+                schema.AnalyticsData(
+                title="Weekly Sentiments",
+                data=sentiments_per_day.values.tolist(),
+                label=sentiments_per_day.columns.tolist(),
+                xrange=WEEKDAY,
+                graph_type="bar graph"
+            ),
+                schema.AnalyticsData(
+                title="Weekly Negative Emotions",
+                data=negative_emotions_per_day.values.tolist(),
+                label=negative_emotions_per_day.columns.tolist(),
+                xrange=WEEKDAY,
+                graph_type="bar graph"
+            )
+            ]
+
+        }
         health_data.append(
-            schema.EmployeeHealthAnalysis(
-                user_id=user_id,
-                period=schema.TimeFrame(
-                    startDate=startDate.isoformat(), endDate=endDate.isoformat()),
-                health_metrics=[schema.AnalyticsData(
-                    title="Happiness Level of Employee",
-                    data=[possitivity_rate],
-                    range=[0, 1],
-                    graph_type="progress bar"
-                ),
-                    schema.AnalyticsData(
-                    title="Stress Level of Employee",
-                    data=[stress_level],
-                    range=[0, 1],
-                    graph_type="progress bar"
-                ),
-                    schema.AnalyticsData(
-                    title="Mood Graph of Employee",
-                    data=[emotions_group.values.tolist()],
-                    label=[emotions_group.index.tolist()],
-                    range=[0, 1],
-                    graph_type="pie graph"
-                ),
-                    schema.AnalyticsData(
-                    title="Overall Sentiment Percentage",
-                    data=sentiment_group.values.tolist(),
-                    label=sentiment_group.index.tolist(),
-                    range=[0, 1],
-                    graph_type="pie graph"
-                ),
-                    schema.AnalyticsData(
-                    title="Sentiment Distribution over a week",
-                    data=sentiments_per_day.values.tolist(),
-                    label=constant.SENTIMENT_LABELS,
-                    xrange=constant.WEEKDAY,
-                    graph_type="bar graph"
-                ),
-                    schema.AnalyticsData(
-                    title="Negative Emotions Distribution over a week",
-                    data=negative_emotions_per_day.values.tolist(),
-                    label=negative_emotions_per_day.columns.tolist(),
-                    xrange=constant.WEEKDAY,
-                    graph_type="bar graph"
-                )
-                ])
+            HealthData(
+                empId=msges_data['empId'].tolist()[0],
+                startDate=startDate.isoformat(),
+                endDate=endDate.isoformat()),
+            healthData=healthdata
         )
+    emp_data['happiness_level'] = emp_data['happiness_index'].apply(
+        lambda x: HAPPINESS_LABEL[0] if x > 6 else HAPPINESS_LABEL[1] if x >= 4 and x <= 6 else HAPPINESS_LABEL[2])
+    admin_health_data = calculate_admin_graph(emp_data)
+    health_data.extend(admin_health_data)
     return health_data

@@ -2,8 +2,15 @@ CLASSIFICATION_MODEL = "app/model/MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 EMOTION_MODEL = "app/model/SamLowe/roberta-base-go_emotions"
 
 SENTIMENT_LABELS = ["Positive", "Negative", "Neutral"]
-WEEKDAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+WEEKDAY = ['Monday', 'Tuesday', 'Wednesday',
+           'Thursday', 'Friday', 'Saturday', 'Sunday']
 WEEKDAY_LABELS = [x for x in range(7)]
+
+HAPPINESS_LABEL = [
+    'Good',
+    'Neutral',
+    'Critical'
+]
 
 EMOTION_LABEL = ["sadness", "happiness", "disgust",
                  "anger", "fear", "surprise", "neutral"]

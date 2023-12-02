@@ -20,6 +20,19 @@ def fetch_channel_details():
     channel_details = client.conversations_list()
     return channel_details['channels']
 
+def filter_channel():
+    channels = fetch_channel_details()
+    channel_details = []
+    for channel in channels:
+        channel_details.append(
+            {
+                'name':channel['name'],
+                'channel_id':channel['id'],
+                'created_timestamp': float(channel['created'])
+            }
+        )
+    return channel_details
+
 
 def fetch_user_details(user_id):
     user_info = client.users_info(user=user_id)['user']
@@ -31,14 +44,30 @@ def change_timestamp_to_utc(ts):
     utc_time = datetime.datetime.utcfromtimestamp(float(ts))
     return utc_time
 
+def contains_only_special_chars(sentence):
+    if bool(re.match(r'^\S+$', sentence)):
+        return True
+    elif bool(re.match(r'^[^\w\s]+(\s[^\w\s]+)*$', sentence)):
+        return True
+    elif bool(re.match(r'^[\d\s]+$', sentence)):
+        return True
+    else:
+        return False
 
-def filter_messages(messages_details):
+def filter_messages(messages_details,last_message_id):
     messages = []
     pattern = r'.*has joined the channel.*'
     for msg in messages_details:
-        text = msg['text']
-        if not re.search(pattern, text) and len(text) != 0:
-            label = predict_emotions(text)
+        text = remove_punctuation_numbers_special_chars(msg['text'])
+        if not re.search(pattern, text) and text and len(text) <= 500:
+            if not last_message_id:
+                last_message_id = msg['client_msg_id']
+            label = ''
+            if contains_only_special_chars(text.strip()):
+                continue
+            else:
+                label = predict_emotions(text)
+            logging.info(f"text: '{text}' - {label}")
             score = LABEL_SCORES[label]
             sentiment = None
             if score > 6:
@@ -49,33 +78,44 @@ def filter_messages(messages_details):
                 sentiment = SENTIMENT_LABELS[2]
             timestamp = change_timestamp_to_utc(msg['ts'])
             message = {
-                'text': remove_punctuation_numbers_special_chars(text),
+                'text': text,
                 'timestamp': timestamp,
-                'user_id': fetch_user_details(msg['user']),
+                'companyEmail': fetch_user_details(msg['user']),
                 'day_of_week': timestamp.weekday(),
                 'label': label,
                 'sentiment': sentiment,
             }
             messages.append(message)
-        logging.info("message filtered")
-    return messages
+            
+    logging.info("messages filtered")
+    return messages,last_message_id
 
 
 def fetch_conversations():
-    cursor = None
-    has_more = True
-    channels = fetch_channel_details()
+    channels = filter_channel()
     messages = []
-    for channel in channels:
-        while (has_more):
-            msg_details = client.conversations_history(
-                channel=channel['id'], limit=200, cursor=cursor)
-            logging.info(f"messages fetched from {channel['name']}")
-            has_more = msg_details['has_more']
-            cursor = msg_details['response_metadata']['next_cursor'] if msg_details['response_metadata'] else None
-            channel_msg = filter_messages(msg_details['messages'])
-            messages.extend(channel_msg)
-    return messages
+    for index, channel in enumerate(channels):
+        cursor = None
+        last_message_id = ''
+        try:
+            while True:
+                msg_details = client.conversations_history(
+                    channel=channel['channel_id'], limit=50, cursor=cursor)
+                logging.info(f"messages fetched from {channel['name']}")
+                channel_msg,last_message_id = filter_messages(msg_details['messages'],last_message_id)
+                messages.extend(channel_msg)
+                if not msg_details['has_more']:
+                    break
+                cursor = msg_details['response_metadata'].get('next_cursor')
+                break
+            if last_message_id:
+                channels[index]['last_message_id'] = last_message_id
+        except SlackApiError as err:
+            channels.pop(index)
+            logging.error(err)
+        break
+           
+    return messages,channels
 
 
 def remove_punctuation_numbers_special_chars(text) -> str:
@@ -84,9 +124,11 @@ def remove_punctuation_numbers_special_chars(text) -> str:
 
     remove_code_block = re.sub(
         r'```.*?```', '', text_no_links, flags=re.DOTALL)
+    
+    replace_mentions = re.sub(r'<[^>]+>', 'user', remove_code_block)
 
     # Replace mentions with an empty string
-    text_no_mentions = re.sub(r'[@#]', '', remove_code_block)
+    text_no_mentions = re.sub(r'[@#]', '', replace_mentions)
 
     # remove unecessary words
     clean_word = re.sub(r'\b\w{25,}\b', '', text_no_mentions)

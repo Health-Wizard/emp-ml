@@ -36,7 +36,7 @@ class EmployeeMessage(BaseModel):
     date_time: str
 
 class EmployeeHealthAnalysis(BaseModel):
-    user_id: str
+    user_id: int
     period: TimeFrame
     health_metrics: List[AnalyticsData] = None
 
