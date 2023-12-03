@@ -1,8 +1,8 @@
-## MindSense : Predicting health via NLP
+## MindSync : Predicting health via NLP
 
 ### Overview
 
-MindSense is a comprehensive mental health assessment and support system designed to analyze and improve the mental well-being of employees within an organization. By leveraging advanced Language Model (LLM) models, the system detects stress levels, emotions, mood, depression, and burnout rates based on employee text messages, survey forms, and engagement games data.
+MindSync is a comprehensive mental health assessment and support system designed to analyze and improve the mental well-being of employees within an organization. By leveraging advanced Language Model (LLM) models, the system detects stress levels, emotions, mood, depression, and burnout rates based on employee text messages, survey forms, and engagement games data.
 For know more read this [slide](https://docs.google.com/presentation/d/1NkCl5IP7GwxmuZ56yYWFDc75HRhTw2qHEZI3ocAhWfw/edit?usp=sharing)
 
 ### Key Features
