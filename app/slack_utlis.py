@@ -1,20 +1,23 @@
 import re
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-from app.constant import LABEL_SCORES, SENTIMENT_LABELS
-from app.model_utils import predict_emotions
+from app.constant import LABEL_SCORES, SENTIMENT_LABELS,EMOTION_MODEL
+from app.config import env_config
+from app.AI_model import AIModel
 import datetime
 import logging
-import os
-from dotenv import load_dotenv
 
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
 
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
-client = WebClient(token=TOKEN)
 
+client = WebClient(token=env_config.TOKEN)
+classifier = AIModel(EMOTION_MODEL).get_pipeline("text-classification")
+
+def predict_emotions(msg: str):
+    emotion = classifier(msg)
+    label = emotion[0]['label']
+    return label
 
 def fetch_channel_details():
     channel_details = client.conversations_list()
@@ -93,6 +96,7 @@ def filter_messages(messages_details,last_message_id):
 
 def fetch_conversations():
     channels = filter_channel()
+    
     messages = []
     for index, channel in enumerate(channels):
         cursor = None
@@ -100,20 +104,18 @@ def fetch_conversations():
         try:
             while True:
                 msg_details = client.conversations_history(
-                    channel=channel['channel_id'], limit=50, cursor=cursor)
+                    channel=channel['channel_id'], limit=200, cursor=cursor)
                 logging.info(f"messages fetched from {channel['name']}")
                 channel_msg,last_message_id = filter_messages(msg_details['messages'],last_message_id)
                 messages.extend(channel_msg)
                 if not msg_details['has_more']:
                     break
                 cursor = msg_details['response_metadata'].get('next_cursor')
-                break
             if last_message_id:
                 channels[index]['last_message_id'] = last_message_id
         except SlackApiError as err:
             channels.pop(index)
             logging.error(err)
-        break
            
     return messages,channels
 

@@ -20,6 +20,12 @@ status = None
 #             'empId': 
 #         }
 
+
+def save_to_db(db, data):
+    db.bulk_save_objects(data)
+    db.commit()
+
+
 def process_data():
     # store message data
     logging.info("Processing started")
@@ -28,12 +34,15 @@ def process_data():
         # channels = db.query(Channels).all()
         emp_details = db.query(Employee.empId,Employee.companyEmail, Employee.role, Employee.department).all()
         # print(employee_data)
-        messages,channels_details = fetch_conversations()
+        # messages,channels_details = fetch_conversations()
+        messages= []
         health_data = calculate_health_index(messages,emp_details)
         # channels_details = [Channels(**channel) for channel in channels_details]
         # print(channels_details)
-        db.bulk_save_objects(health_data)
-        db.commit()
+        # save_to_db(db,channels_details)
+        save_to_db(db,health_data)
+        # db.bulk_save_objects(health_data)
+        # db.commit()
     except Exception as err:
         logging.error(err)
         db.rollback()

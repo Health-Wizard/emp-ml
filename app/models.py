@@ -1,13 +1,11 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime,JSON
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime,JSON,ForeignKey
+from sqlalchemy.orm import declarative_base,relationship
 from app.db import engine
 
 Base = declarative_base()
 
-
-
 class Channels(Base):
-    __tablename__ = "channel_details"
+    __tablename__ = "Channels"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=False, nullable=True)
@@ -32,13 +30,9 @@ class Employee(Base):
     age = Column(Integer, nullable=True, unique=False)
 
 class HealthData(Base):
-    __tablename__ = "health_analytics"
+    __tablename__ = "Health_Analytics"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    empId = Column(Integer, unique=False)
+    empId = Column(Integer,ForeignKey('Employee.empId'), unique=True)
     startDate = Column(DateTime, nullable=False, unique=False)
     endDate = Column(DateTime, nullable=False, unique=False)
-    healthData = Column(JSON,)
-
-
-
-# Base.metadata.create_all(engine)
+    health_data = Column(JSON,)
