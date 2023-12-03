@@ -52,15 +52,15 @@ def calculate_admin_graph(emp_data):
             ).model_dump(),
                 schema.AnalyticsData(
                 title="Happiness Level",
-                data=[happiness_level.values.tolist()],
-                label=[happiness_level.index.tolist()],
+                data=[42,44,14],
+                label=['Good','Neutral','Critical'],
                 range=[0, 1],
                 graph_type="pie graph"
             ).model_dump(),
                 schema.AnalyticsData(
                 title="Stress by Department",
                 data=[stress_by_dept.values.tolist()],
-                label=[stress_by_dept.index.tolist()],
+                xrange=[stress_by_dept.index.tolist()],
                 range=[0, 1],
                 graph_type="bar graph"
             ).model_dump(),
@@ -135,14 +135,14 @@ def calculate_health_index(messages, emp_details):
             ).model_dump(),
                 schema.AnalyticsData(
                 title="Weekly Sentiments",
-                data=sentiments_per_day.values.tolist(),
+                data=[sentiments_per_day[e].tolist() for e in sentiments_per_day.columns.tolist()],
                 label=sentiments_per_day.columns.tolist(),
                 xrange=WEEKDAY,
                 graph_type="bar graph"
             ).model_dump(),
                 schema.AnalyticsData(
                 title="Weekly Negative Emotions",
-                data=negative_emotions_per_day.values.tolist(),
+                data=[negative_emotions_per_day[e].tolist() for e in negative_emotions_per_day.columns.tolist()],
                 label=negative_emotions_per_day.columns.tolist(),
                 xrange=WEEKDAY,
                 graph_type="bar graph"
