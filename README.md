@@ -26,9 +26,14 @@ MindSense processes the text interactions provided by employees through various 
 The system considers contextual factors such as role, salary, and department to tailor the analysis and recommendations, ensuring a more personalized approach to mental health assessment.
 
 
-## Usage
+## SetUp
 
-This app is a part of this ----. Visit this to access the live demo of the application.
+1. Need to install python in the system
+2. create a virtual environment
+3. run ```pip install requirements.txt``` in the terminal
+4. create a ```.env``` file based on the template
+4. run ```uvicorn app.main:app```
+5. check port 8000
 
 
 

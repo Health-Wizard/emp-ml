@@ -10,8 +10,10 @@ import logging
 # Set up a logger with basic configuration
 logging.basicConfig(level=logging.INFO)
 
-
+# creation of a client for slack bot
 client = WebClient(token=env_config.TOKEN)
+
+# pipeline for text labelling
 classifier = AIModel(EMOTION_MODEL).get_pipeline("text-classification")
 
 def predict_emotions(msg: str):

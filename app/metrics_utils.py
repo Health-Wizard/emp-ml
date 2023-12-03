@@ -77,6 +77,7 @@ def calculate_admin_graph(emp_data):
     return admin_health_data
 
 
+# calculation of health data
 def calculate_health_index(messages, emp_details):
     health_data = []
 
@@ -86,9 +87,7 @@ def calculate_health_index(messages, emp_details):
     emp_data['stree_label'] = [0.0]*len(emp_data)
     only_admin = set((emp_data[emp_data['role'] == 'admin']['companyEmail']).tolist())
 
-    # messages_details = pd.DataFrame.from_dict(messages)
-
-    messages_details = pd.read_csv('fake.csv')
+    messages_details = pd.DataFrame.from_dict(messages)
     emp_msg_data = pd.merge(emp_data, messages_details,
                             on='companyEmail', how='inner')
 
@@ -104,7 +103,6 @@ def calculate_health_index(messages, emp_details):
             SENTIMENT_LABELS, fill_value=0)
         sentiments_per_day = msges_data.groupby('day_of_week')['sentiment'].value_counts(
         ).unstack(fill_value=0).reindex(WEEKDAY_LABELS, fill_value=0).sort_index()
-        # Count of emotions per day
         neg_data = msges_data[msges_data['sentiment'] == 'negative']
         negative_emotions_per_day = neg_data.groupby('day_of_week')['label'].value_counts(
         ).unstack(fill_value=0).reindex(WEEKDAY_LABELS, fill_value=0).sort_index()

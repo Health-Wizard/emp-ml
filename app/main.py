@@ -13,28 +13,20 @@ app = FastAPI()
 status = None
 
 
-# def map_emp_to_dict(emp_details):
-#     employees = {}
-#     for emp in emp_details:
-#         {
-#             'empId': 
-#         }
-
-
+# save in bulk to db
 def save_to_db(db, data):
     db.bulk_save_objects(data)
     db.commit()
 
 
+# start of the processing of the data
 def process_data():
-    # store message data
     logging.info("Processing started")
     try:
         db = Session()
         # channels = db.query(Channels).all()
         emp_details = db.query(Employee.empId,Employee.companyEmail, Employee.role, Employee.department).all()
-        # print(employee_data)
-        # messages,channels_details = fetch_conversations()
+        messages,channels_details = fetch_conversations()
         messages= []
         health_data = calculate_health_index(messages,emp_details)
         # channels_details = [Channels(**channel) for channel in channels_details]
@@ -62,9 +54,7 @@ async def trigger_employee_data(background_tasks: BackgroundTasks):
     global status
     if status == None:
         status = "running"
-    # await fetch_from_db()
-    process_data()
-    # background_tasks.add_task(process_data)
+        background_tasks.add_task(process_data)
     return ResponseData(
         status=status,
         data=[]
